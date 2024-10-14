@@ -3,32 +3,38 @@ name: Create Zip of Changed Files
 on:
   push:
     branches:
-      - main  # Change this to your target branch
+      - main  # Change to your branch if needed
 
 jobs:
   zip_changed_files:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Get the current commit hash
-      id: get_commit
-      run: |
-        $commitHash = git rev-parse HEAD
-        echo "Current commit: $commitHash"
-        echo "::set-output name=commit::$commitHash"
-
-    - name: Get list of changed files in the commit
+    - name: Get list of changed files
       id: changed_files
       run: |
-        git diff-tree --no-commit-id --name-only -r ${{ steps.get_commit.outputs.commit }} > changed_files.txt
-        type changed_files.txt
+        git diff --name-only HEAD^ HEAD > changed_files.txt
+        cat changed_files.txt
 
     - name: Copy changed files to a new directory
       run: |
-        mkdir changed_files
-        foreach ($file in Get-Content changed_files.txt) {
-          if (Test-Path -Path $file) {
-            $destination = "changed_files\" + [System.IO.Path]
+        mkdir -p changed_files
+        while IFS= read -r file; do
+          if [ -f "$file" ]; then
+            mkdir -p "changed_files/$(dirname "$file")"
+            cp "$file" "changed_files/$file"
+          fi
+        done < changed_files.txt
+
+    - name: Zip the changed files
+      run: |
+        zip -r changed_files.zip changed_files
+
+    - name: Upload zip file as an artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: changed-files
+        path: changed_files.zip
