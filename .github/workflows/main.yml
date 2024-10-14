@@ -3,7 +3,7 @@ name: Create Zip of Changed Files
 on:
   push:
     branches:
-      - main  # Change this to your desired branch
+      - main  # Change to your branch if needed
 
 jobs:
   zip_changed_files:
@@ -16,7 +16,13 @@ jobs:
     - name: Get list of changed files
       id: changed_files
       run: |
-        git diff --name-only HEAD^ HEAD > changed_files.txt
+        # Check if there is a previous commit
+        if git rev-parse HEAD^ >nul 2>&1; then
+          git diff --name-only HEAD^ HEAD > changed_files.txt
+        else
+          echo "Initial commit - getting all files"
+          git ls-tree --name-only -r HEAD > changed_files.txt
+        fi
         type changed_files.txt
 
     - name: Copy changed files to a new directory
