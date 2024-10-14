@@ -13,7 +13,10 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
       with:
-        fetch-depth: 0
+        fetch-depth: 0  # Fetch all commits
+
+    - name: Print OS Information
+      run: echo "Running on: $(uname -a)"
 
     - name: Get the current commit hash
       id: get_commit
@@ -25,15 +28,16 @@ jobs:
     - name: Get list of changed files
       id: changed_files
       run: |
-        # Check if there are at least two commits
         commitCount=$(git rev-list --count HEAD)
+        echo "Number of commits: $commitCount"
         if [ "$commitCount" -gt 1 ]; then
           git diff --name-only HEAD^ HEAD > changed_files.txt
+          echo "Changed files:"
+          cat changed_files.txt
         else
           echo "No previous commit found. No files changed."
           touch changed_files.txt
         fi
-        cat changed_files.txt
 
     - name: Copy changed files to a new directory
       run: |
@@ -47,7 +51,7 @@ jobs:
         done < changed_files.txt
 
     - name: Zip the changed files
-      run: zip -r changed_files.zip changed_files
+      run: zip -r changed_files.zip changed_files -x "changed_files/.github/*"
 
     - name: Upload zip file as an artifact
       uses: actions/upload-artifact@v3
