@@ -13,41 +13,22 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Get the number of commits
-      id: commit_count
+    - name: Get the current commit hash
+      id: get_commit
       run: |
-        $commitCount = git rev-list --count HEAD
-        echo "Commit count: $commitCount"
-        echo "::set-output name=count::$commitCount"
-    
-    - name: Get list of changed files
-      if: steps.commit_count.outputs.count > 1
+        $commitHash = git rev-parse HEAD
+        echo "Current commit: $commitHash"
+        echo "::set-output name=commit::$commitHash"
+
+    - name: Get list of changed files in the commit
       id: changed_files
       run: |
-        git diff --name-only HEAD^ HEAD > changed_files.txt
+        git diff-tree --no-commit-id --name-only -r ${{ steps.get_commit.outputs.commit }} > changed_files.txt
         type changed_files.txt
 
     - name: Copy changed files to a new directory
-      if: steps.commit_count.outputs.count > 1
       run: |
         mkdir changed_files
         foreach ($file in Get-Content changed_files.txt) {
           if (Test-Path -Path $file) {
-            $destination = "changed_files\" + [System.IO.Path]::GetDirectoryName($file)
-            if (-not (Test-Path $destination)) {
-              New-Item -ItemType Directory -Force -Path $destination
-            }
-            Copy-Item -Path $file -Destination $destination
-          }
-        }
-
-    - name: Zip the changed files
-      if: steps.commit_count.outputs.count > 1
-      run: Compress-Archive -Path changed_files -DestinationPath changed_files.zip
-
-    - name: Upload zip file as an artifact
-      if: steps.commit_count.outputs.count > 1
-      uses: actions/upload-artifact@v3
-      with:
-        name: changed-files
-        path: changed_files.zip
+            $destination = "changed_files\" + [System.IO.Path]
