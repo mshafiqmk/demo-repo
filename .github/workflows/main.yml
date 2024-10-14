@@ -1,0 +1,42 @@
+name: Create Zip of Changed Files
+
+on:
+  push:
+    branches:
+      - main  # Change this to your desired branch
+
+jobs:
+  zip_changed_files:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Get list of changed files
+      id: changed_files
+      run: |
+        git diff --name-only HEAD^ HEAD > changed_files.txt
+        type changed_files.txt
+
+    - name: Copy changed files to a new directory
+      run: |
+        mkdir changed_files
+        foreach ($file in Get-Content changed_files.txt) {
+          if (Test-Path -Path $file) {
+            $destination = "changed_files\" + [System.IO.Path]::GetDirectoryName($file)
+            if (-not (Test-Path $destination)) {
+              New-Item -ItemType Directory -Force -Path $destination
+            }
+            Copy-Item -Path $file -Destination $destination
+          }
+        }
+
+    - name: Zip the changed files
+      run: Compress-Archive -Path changed_files -DestinationPath changed_files.zip
+
+    - name: Upload zip file as an artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: changed-files
+        path: changed_files.zip
