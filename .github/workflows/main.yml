@@ -20,18 +20,13 @@ jobs:
         echo "Current commit: $commitHash"
         echo "::set-output name=commit::$commitHash"
 
-    - name: Get the previous commit hash
-      id: get_previous_commit
-      run: |
-        previousCommit=$(git rev-parse HEAD^2 2>/dev/null || echo "No previous commit")
-        echo "Previous commit: $previousCommit"
-        echo "::set-output name=prev_commit::$previousCommit"
-
-    - name: Get list of changed files in the commit
+    - name: Get list of changed files
       id: changed_files
       run: |
-        if [ "${{ steps.get_previous_commit.outputs.prev_commit }}" != "No previous commit" ]; then
-          git diff --name-only ${{ steps.get_previous_commit.outputs.prev_commit }} HEAD > changed_files.txt
+        # Check if there are at least two commits
+        commitCount=$(git rev-list --count HEAD)
+        if [ "$commitCount" -gt 1 ]; then
+          git diff --name-only HEAD^ HEAD > changed_files.txt
         else
           echo "No previous commit found. No files changed."
           touch changed_files.txt
